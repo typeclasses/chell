@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Test.Chell.QuickCheck (property) where
 
 import Test.Chell qualified as Chell
@@ -30,7 +31,12 @@ property name prop = Chell.test name $ \opts -> Text.withNullTerminal $ \term ->
             { State.terminal = term,
               State.maxSuccessTests = QuickCheck.maxSuccess args,
               State.maxDiscardedRatio = QuickCheck.maxDiscardRatio args,
+#if MIN_VERSION_QuickCheck(2,15,0)
+              State.replayStartSize = Nothing,
+              State.maxTestSize = QuickCheck.maxSize args,
+#else
               State.computeSize = computeSize (QuickCheck.maxSize args) (QuickCheck.maxSuccess args),
+#endif
               State.numSuccessTests = 0,
               State.numDiscardedTests = 0,
               State.classes = mempty,
@@ -59,6 +65,7 @@ property name prop = Chell.test name $ \opts -> Text.withNullTerminal $ \term ->
         Test.GaveUp {} -> Chell.TestAborted notes output
         Test.NoExpectedFailure {} -> Chell.TestFailed notes [failure]
 
+#if !MIN_VERSION_QuickCheck(2,15,0)
 -- copied from quickcheck-2.4.1.1/src/Test/QuickCheck/Test.hs
 computeSize :: Int -> Int -> Int -> Int -> Int
 computeSize maxSize maxSuccess n d
@@ -79,3 +86,4 @@ computeSize maxSize maxSuccess n d
 
 roundTo :: Int -> Int -> Int
 roundTo n m = (n `div` m) * m
+#endif
